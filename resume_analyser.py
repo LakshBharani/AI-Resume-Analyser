@@ -9,11 +9,57 @@ import plotly.graph_objects as go
 import re
 
 
-judging_criteria = input("Enter judgement criteria (CSV): ")
-judging_criteria = judging_criteria.split(",")
-for i in range(len(judging_criteria)):
-    judging_criteria[i] = judging_criteria[i].strip().capitalize()
+# get all judging filters as input from recruiter
+def extract_judging_criteria():
+    judging_criteria = input("Enter judgement criteria (CSV): ")
+    judging_criteria = judging_criteria.split(",")
+    for i in range(len(judging_criteria)):
+        judging_criteria[i] = judging_criteria[i].strip().capitalize()
+    return judging_criteria
 
+
+# reads & extracts text from all resumes in ./ENGINEERING/*.pdf
+def extract_resume_data():
+    resumes_string = ""
+    for filename in os.listdir('ENGINEERING'):
+        if filename.endswith('.pdf'):
+            pdf_path = os.path.join('ENGINEERING', filename)
+            pdf_document = pymupdf.open(pdf_path)
+            pdf_text = ""
+            for page_num in range(pdf_document.page_count):
+                page = pdf_document[page_num]
+                pdf_text += page.get_text("text")
+            pdf_document.close()
+            resumes_string += "<"+filename+">\n"+pdf_text+"\n</resume>"
+    return resumes_string
+
+
+# plot the spider chart from all resume data
+def plot_spider_chart(responseText, judging_criteria):
+    fig = go.Figure()
+
+    responseText = responseText.split("</resume>")
+
+    for response in responseText:
+        print(response)
+
+        file_name = response.strip("\n").partition(".pdf>")[0][1::] + ".pdf"
+        pattern = r'\* (.+?): (\d+)'
+        matches = re.findall(pattern, response)
+        r_value = []
+        for match in matches:
+            r_value.append(int(match[1]))
+
+        fig.add_trace(go.Scatterpolar(
+            r=r_value,
+            theta=judging_criteria,
+            fill='toself',
+            name=file_name
+        ))
+    fig.show()
+
+
+# job description of the role over which resumes are being tested
 job_description = """
 Overview
 Student Training in Engineering Program (STEP) is a developmental internship program for students in their first or second year of a Bachelor's degree program in Computer Science or a related field, aimed specifically at cultivating high potential students and focuses on providing development opportunities through technical training, software engineering project work, and professional development.
@@ -40,21 +86,14 @@ Returning to a Bachelor's degree program with at least two years remaining in th
 Ability to complete a full-time, 12-week internship between May and August or June and September 2025 (exact program dates will be provided at a later point in the process).
 """
 
-resumes_string = ""
-for filename in os.listdir('ENGINEERING'):
-    if filename.endswith('.pdf'):
-        pdf_path = os.path.join('ENGINEERING', filename)
-        pdf_document = pymupdf.open(pdf_path)
-        pdf_text = ""
-        for page_num in range(pdf_document.page_count):
-            page = pdf_document[page_num]
-            pdf_text += page.get_text("text")
-        pdf_document.close()
-        resumes_string += "<"+filename+">\n"+pdf_text+"\n</resume>"
+# calls the extract_resume_data function
+resumes_string = extract_resume_data()
 
+# calls the extract_judging_criteria function()
+judging_criteria = extract_judging_criteria()
 
 # creating models to represent hiring managers
-genai.configure(api_key="AIzaSyD2Q6iZ5JBTS_PdhXEJIIiJ8GkjUNjK5hI")
+genai.configure(api_key="AIzaSyDj5z_kywo4ing1RH3WJxtwQxR2hNVdyMg")
 
 generation_config0 = {
     "temperature": 0.5,
@@ -84,6 +123,8 @@ model1 = genai.GenerativeModel(
     system_instruction="You are an artificial intelligence hiring manager assistant and you need to review the given job description and resumes and provide your response on each resume review by the hiring manager to the hiring manager. Your response should be in the following format(Don't forget any brackets such as <> or end resumes</resume> or be it any space for formating purposes and indexing might throw an error),(also keep the Fit_Score_Agreement: as either T or F(case sensitive)):\n<resume_file_name.file_extension>\nFit_Score_Agreement: #Enter only True or False(Case sensitive)\nMy_Comment: #Enter your comment on the summary by the hiring manager do you agree or disagree.\n</resume>\n",
 )
 
+
+# maintain chat history with models
 chat_session0 = model0.start_chat(
     history=[
     ]
@@ -99,28 +140,9 @@ response = chat_session0.send_message(
 response1 = chat_session1.send_message("<Job Description>\n"+job_description +
                                        "\n</Job Description>\n"+resumes_string+"\nHiring Manager's Response: \n"+response.text)
 
+# get text from responses
 responseText = response.text
 response1Text = response1.text
 
-fig = go.Figure()
-
-responseText = responseText.split("</resume>")
-
-for response in responseText:
-    print(response)
-
-    file_name = response.strip("\n").partition(".pdf>")[0][1::] + ".pdf"
-    pattern = r'\* (.+?) : (\d+)'
-    matches = re.findall(pattern, response)
-    r_value = []
-    for match in matches:
-        r_value.append(int(match[1]))
-
-    fig.add_trace(go.Scatterpolar(
-        r=r_value,
-        theta=judging_criteria,
-        fill='toself',
-        name=file_name
-    ))
-
-fig.show()
+# plot spider chart after analysing data and receiving response
+plot_spider_chart(responseText, judging_criteria)
