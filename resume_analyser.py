@@ -54,7 +54,7 @@ for filename in os.listdir('ENGINEERING'):
 
 
 # creating models to represent hiring managers
-genai.configure(api_key="AIzaSyD2Q6iZ5JBTS_PdhXEJIIiJ8GkjUNjK5hI")
+genai.configure(api_key="")
 
 generation_config0 = {
     "temperature": 0.5,
