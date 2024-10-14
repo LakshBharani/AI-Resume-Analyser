@@ -7,6 +7,15 @@ import tkinter as tk
 import plotly.express as px
 import plotly.graph_objects as go
 import re
+import csv
+from dotenv import load_dotenv
+from pathlib import Path
+
+
+# get api key from .env
+dotenv_path = Path('./.env')
+load_dotenv(dotenv_path=dotenv_path)
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
 
 
 # get all judging filters as input from recruiter
@@ -39,7 +48,6 @@ def plot_spider_chart(responseText, judging_criteria):
     fig = go.Figure()
 
     responseText = responseText.split("</resume>")
-
     for response in responseText:
         print(response)
 
@@ -52,11 +60,54 @@ def plot_spider_chart(responseText, judging_criteria):
 
         fig.add_trace(go.Scatterpolar(
             r=r_value,
-            theta=judging_criteria,
+            theta=judging_criteria + [],
             fill='toself',
             name=file_name
         ))
     fig.show()
+
+
+# Create a CSV of output scores
+def write_to_csv(responseText):
+    # Define the filename for the CSV
+    output_filename = "resume_scores.csv"
+
+    # Extract the judging criteria and resume data
+    responseText = responseText.split("</resume>")
+    rows = []
+
+    # Extract each resume's data from the AI response
+    for response in responseText:
+        if response.strip():  # Skip empty responses
+            file_name = response.strip("\n").partition(".pdf>")[0][1:] + ".pdf"
+            pattern = r'\* (.+?): (\d+)'  # Find judging criteria scores
+            matches = re.findall(pattern, response)
+
+            # Extract Fit Score and Criteria Scores
+            fit_score_match = re.search(r"Fit_Score: (\d+)/100", response)
+            fit_score = fit_score_match.group(1) if fit_score_match else "N/A"
+
+            # Create a dictionary of criteria scores for alignment with headers
+            criteria_scores = {match[0]: int(match[1]) for match in matches}
+
+            # Store data in rows for CSV
+            row = [file_name, fit_score] + [
+                criteria_scores.get(criteria, 0) for criteria in judging_criteria
+            ]
+            rows.append(row)
+
+    # Write data to CSV
+    with open(output_filename, mode='w', newline='') as file:
+        writer = csv.writer(file)
+
+        # Create the header row
+        header = ["Resume File", "Fit Score"] + judging_criteria
+        writer.writerow(header)
+
+        # Write the data rows
+        writer.writerows(rows)
+
+    print(f"CSV file '{output_filename}' has been created successfully.")
 
 
 # job description of the role over which resumes are being tested
@@ -93,10 +144,10 @@ resumes_string = extract_resume_data()
 judging_criteria = extract_judging_criteria()
 
 # creating models to represent hiring managers
-genai.configure(api_key="AIzaSyDj5z_kywo4ing1RH3WJxtwQxR2hNVdyMg")
+genai.configure(api_key=GEMINI_API_KEY)
 
 generation_config0 = {
-    "temperature": 0.5,
+    "temperature": 0.8,
     "top_p": 0.95,
     "top_k": 40,
     "max_output_tokens": 8192,
@@ -104,7 +155,7 @@ generation_config0 = {
 }
 
 generation_config1 = {
-    "temperature": 1.5,
+    "temperature": 1,
     "top_p": 0.95,
     "top_k": 40,
     "max_output_tokens": 8192,
@@ -114,7 +165,7 @@ generation_config1 = {
 model0 = genai.GenerativeModel(
     model_name="gemini-1.5-pro-002",
     generation_config=generation_config0,
-    system_instruction="You are an artificial intelligence hiring manager assistant and you need to review the given job description and resumes and provide your summary on each resume to another artificial intelligence hiring manager assistant who is similiar to you. Your response should be in the following format(don't forget any bracket such as <> or end resumes</resume> or be it any space for formating purposes and indexing might throw an error),(also keep the fit score in two digits for indexing purposes), also , grade them numerically in 2 digits on the criteria provided as input (these 2 digit scores will be used to compare 2 any 2 random candidates and plot on a spider chart):\n<resume_file_name.file_extension>\nFit_Score: your_score/100 #The fit score you assigned to the candidate relative to others\nJuding Criteria Scores\n(list the criterias one below the other along with the score) * criteria : score format\nPositives: # Provide what made you give that score. What matched\nNegatives: # Provide what you feel he is lacking relative to others\n</resume>",
+    system_instruction="You are an artificial intelligence hiring manager assistant and you need to review the given job description and resumes and provide your summary on each resume to another artificial intelligence hiring manager assistant who is similiar to you. Your response should be in the following format(don't forget any bracket such as <> or end resumes</resume> or be it any space for formating purposes and indexing might throw an error),(also keep the fit score in two digits for indexing purposes), also , grade them numerically in 2 digits on the criteria provided as input (these 2 digit scores will be used to compare 2 any 2 random candidates and plot on a spider chart):\n<resume_file_name.file_extension>\nFit_Score: your_score/100 #The fit score you assigned to the candidate relative to others\nJuding Criteria Scores\n(list the criterias one below the other along with the score) * criteria: score (dont put a space next to criteria and : and put a space after : and score and dont forget the bullet point * for formatting purpose) format\nPositives: # Provide what made you give that score. What matched\nNegatives: # Provide what you feel he is lacking relative to others\n</resume>",
 )
 
 model1 = genai.GenerativeModel(
@@ -146,3 +197,6 @@ response1Text = response1.text
 
 # plot spider chart after analysing data and receiving response
 plot_spider_chart(responseText, judging_criteria)
+
+# create & write csv
+write_to_csv(responseText)
