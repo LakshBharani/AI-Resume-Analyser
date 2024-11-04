@@ -20,10 +20,10 @@ completed_and_downloadable_jobids = []
 @app.route('/login',methods=['GET','POST'])
 def login():
     if 'username' not in session:
-        conn1 = pyodbc.connect(r'DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};DBQ=C:\\Users\\Anjan\\OneDrive\\Documents\\Projects\\Neural Hire\\IAM.accdb;')
+        conn1 = pyodbc.connect(r'Driver={ODBC Driver 17 for SQL Server};Server=tcp:neural-hire-dev-1.database.windows.net,1433;Database=neural-hire-db;Uid=vmadmin;Pwd=Virginia@Tech;Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;')
         cursor1 = conn1.cursor()
         cursor1.execute("""
-        SELECT * FROM iam
+        SELECT * FROM [dbo].[iam]
         """)
         rows1 = cursor1.fetchall()
         iam = {}
@@ -46,10 +46,10 @@ def login():
 
 @app.route('/',methods=['GET','POST'])
 def home():
-    conn = pyodbc.connect(r'DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};DBQ=C:\\Users\\Anjan\\OneDrive\\Documents\\Projects\\Neural Hire\\temporarydb.accdb;')
+    conn = pyodbc.connect(r'Driver={ODBC Driver 17 for SQL Server};Server=tcp:neural-hire-dev-1.database.windows.net,1433;Database=neural-hire-db;Uid=vmadmin;Pwd=Virginia@Tech;Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;')
     cursor = conn.cursor()
     cursor.execute("""
-    SELECT * FROM jobs
+    SELECT * FROM [dbo].[jobs]
     """)
     rows = cursor.fetchall()
     if 'username' not in session:
@@ -79,10 +79,10 @@ def createnewjob():
         for a in range(len(metrics)-1):
             metrics_input += metrics[a] + ","
         metrics_input += metrics[-1] + "."
-        conn1 = pyodbc.connect(r'DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};DBQ=C:\\Users\\Anjan\\OneDrive\\Documents\\Projects\\Neural Hire\\temporarydb.accdb;')
+        conn1 = pyodbc.connect(r'Driver={ODBC Driver 17 for SQL Server};Server=tcp:neural-hire-dev-1.database.windows.net,1433;Database=neural-hire-db;Uid=vmadmin;Pwd=Virginia@Tech;Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;')
         cursor1 = conn1.cursor()
         cursor1.execute("""
-        INSERT INTO jobs(jobname, datecreated, status, username) VALUES(?,?,?,?)
+        INSERT INTO [dbo].[jobs](jobname, datecreated, status, username) VALUES(?,?,?,?)
         """,(jobname,datetime.now().date(),False,session['username']))
         conn1.commit()
         cursor1.execute("SELECT @@IDENTITY AS last_id")

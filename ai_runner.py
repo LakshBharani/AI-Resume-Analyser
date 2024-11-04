@@ -68,7 +68,7 @@ def ai_runner(filepath_input,job_description_input,job_metrics_input,job_id_inpu
                 writer.writerow([key]+values)
     except Exception as e:
         print(e)
-    conn1 = pyodbc.connect(r'DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};DBQ=C:\\Users\\Anjan\\OneDrive\\Documents\\Projects\\Neural Hire\\temporarydb.accdb;')
+    conn1 = pyodbc.connect(r'Driver={ODBC Driver 17 for SQL Server};Server=tcp:neural-hire-dev-1.database.windows.net,1433;Database=neural-hire-db;Uid=vmadmin;Pwd=Virginia@Tech;Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;')
     cursor1 = conn1.cursor()
     cursor1.execute("""
     UPDATE jobs SET status=? WHERE jobid=?
