@@ -136,9 +136,9 @@ def viewjob():
     input_view_job_id = request.args.get('inputviewjobid')
     if request.method=='GET':
         csv_file_name = str(input_view_job_id)+".csv"
-        df = pd.read_csv(csv_file_name)
+        df = pd.read_csv(csv_file_name, encoding='utf-8', encoding_errors='ignore')
         labels = df.columns[1:].tolist() # Assuming the first column is a category, and others are metrics
-        mycurr.execute("select jobname from [dbo].[jobs] where jobid = 1;")
+        mycurr.execute(f'select jobname from [dbo].[jobs] where jobid = {str(input_view_job_id)};')
         job_name = mycurr.fetchone()[0]
         datasets = [
             {

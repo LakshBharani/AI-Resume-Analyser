@@ -47,17 +47,21 @@ def extract_resume_data():
     resumes_string = ""
     with zipfile.ZipFile(filepath, 'r') as archive:
         for fileinfo in archive.infolist():
-            if fileinfo.filename.endswith('.pdf'):
-                with archive.open(fileinfo) as pdf_file:
-                    pdf_data = pdf_file.read()
-                    pdf_document = pymupdf.open(
-                        stream=pdf_data, filetype="pdf")
-                    pdf_text = ""
-                    for page_num in range(pdf_document.page_count):
-                        page = pdf_document[page_num]
-                        pdf_text += page.get_text("text")
-                    pdf_document.close()
-                    resumes_string += f"<{fileinfo.filename}>\n{pdf_text}\n</resume>"
+            try:
+                if fileinfo.filename.endswith('.pdf'):
+                    with archive.open(fileinfo) as pdf_file:
+                        pdf_data = pdf_file.read()
+                        pdf_document = pymupdf.open(
+                            stream=pdf_data, filetype="pdf")
+                        pdf_text = ""
+                        for page_num in range(pdf_document.page_count):
+                            page = pdf_document[page_num]
+                            pdf_text += page.get_text("text")
+                        pdf_document.close()
+                        resumes_string += f"<{fileinfo.filename}>\n{pdf_text}\n</resume>"
+            except:
+                continue
+                
     return resumes_string
 
 
@@ -104,6 +108,7 @@ def write_to_csv(responseText):
         writer.writerows(rows)
 
     print(f"CSV file '{output_filename}' has been created successfully.")
+
 
 # calls the extract_resume_data function
 resumes_string = extract_resume_data()
