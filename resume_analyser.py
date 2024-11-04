@@ -32,6 +32,8 @@ myconn = pyodbc.connect(
 mycurr = myconn.cursor()
 
 # get all judging filters as input from recruiter
+
+
 def extract_job_metrics():
     global job_metrics
     job_metrics = job_metrics.split(",")
@@ -44,18 +46,18 @@ def extract_job_metrics():
 def extract_resume_data():
     resumes_string = ""
     with zipfile.ZipFile(filepath, 'r') as archive:
-         for fileinfo in archive.infolist():
-              if fileinfo.filename.endswith('.pdf'):
-                   with archive.open(fileinfo) as pdf_file:
-                        pdf_data = pdf_file.read()
-                        pdf_document = pymupdf.open(
-                            stream=pdf_data, filetype="pdf")
-                        pdf_text = ""
-                        for page_num in range(pdf_document.page_count):
-                            page = pdf_document[page_num]
-                            pdf_text += page.get_text("text")
-                        pdf_document.close()
-                        resumes_string += f"<{fileinfo.filename}>\n{pdf_text}\n</resume>"
+        for fileinfo in archive.infolist():
+            if fileinfo.filename.endswith('.pdf'):
+                with archive.open(fileinfo) as pdf_file:
+                    pdf_data = pdf_file.read()
+                    pdf_document = pymupdf.open(
+                        stream=pdf_data, filetype="pdf")
+                    pdf_text = ""
+                    for page_num in range(pdf_document.page_count):
+                        page = pdf_document[page_num]
+                        pdf_text += page.get_text("text")
+                    pdf_document.close()
+                    resumes_string += f"<{fileinfo.filename}>\n{pdf_text}\n</resume>"
     return resumes_string
 
 

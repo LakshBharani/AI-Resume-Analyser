@@ -1,5 +1,16 @@
+os  # Standard library, no need to include
+google-generative-ai
+pymupdf
+plotly
+re  # Standard library, no need to include
+csv  # Standard library, no need to include
+python-dotenv
+pathlib  # Standard library, no need to include
+zipfile  # Standard library, no need to include
 pyodbc
-fastapi
-uvicorn[standard]
-pydantic
-azure-identity
+sys  # Standard library, no need to include
+Flask
+subprocess  # Standard library, no need to include
+threading  # Standard library, no need to include
+datetime  # Standard library, no need to include
+pandas
