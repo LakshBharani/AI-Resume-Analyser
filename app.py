@@ -12,8 +12,9 @@ dotenv_path = Path('./.env')
 load_dotenv(dotenv_path=dotenv_path)
 SQL_CLOUD_PWD = os.getenv('SQL_CLOUD_PWD')
 
-myconn = pyodbc.connect(
-    r'Driver={ODBC Driver 18 for SQL Server};Server=tcp:neural-hire-dev-1.database.windows.net,1433;Database=neural-hire-db;Uid=vmadmin;Pwd=Virginia@Tech;Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;')
+connection_string = f'Driver={"ODBC Driver 18 for SQL Server"};Server=tcp:neural-hire-dev-1.database.windows.net,1433;Database=neural-hire-db;Uid=vmadmin;Pwd={SQL_CLOUD_PWD};Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;'
+
+myconn = pyodbc.connect(connection_string)
 mycurr = myconn.cursor()
 
 app = Flask(__name__)
@@ -29,16 +30,15 @@ completed_and_downloadable_jobids = []
 @app.route('/login',methods=['GET','POST'])
 def login():
     if 'username' not in session:
-        conn1 = pyodbc.connect(r'Driver={ODBC Driver 18 for SQL Server};Server=tcp:neural-hire-dev-1.database.windows.net,1433;Database=neural-hire-db;Uid=vmadmin;Pwd=Virginia@Tech;Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;')
-        cursor1 = conn1.cursor()
-        cursor1.execute("""
+        mycurr.execute("""
         SELECT * FROM [dbo].[iam]
         """)
-        rows1 = cursor1.fetchall()
+        rows1 = mycurr.fetchall()
         iam = {}
         for row1 in rows1:
             iam[row1[0]] = row1[1]
-        conn1.close()
+        myconn.commit()
+        
         if request.method=='POST':
             try:
                 inputusername = request.form['inputusername']
@@ -55,12 +55,10 @@ def login():
 
 @app.route('/',methods=['GET','POST'])
 def home():
-    conn = pyodbc.connect(r'Driver={ODBC Driver 18 for SQL Server};Server=tcp:neural-hire-dev-1.database.windows.net,1433;Database=neural-hire-db;Uid=vmadmin;Pwd=Virginia@Tech;Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;')
-    cursor = conn.cursor()
-    cursor.execute("""
+    mycurr.execute("""
     SELECT * FROM [dbo].[jobs]
     """)
-    rows = cursor.fetchall()
+    rows = mycurr.fetchall()
     if 'username' not in session:
         return redirect('/login')
     tablerows = []
@@ -69,7 +67,7 @@ def home():
             tablerows.append([row[1],row[3],row[0]])
             if row[3]==True:
                 completed_and_downloadable_jobids.append(row[0])
-    conn.close()
+    myconn.commit()
     return render_template('home.html',data = tablerows)
 
 @app.route('/createnewjob',methods=['GET','POST'])
@@ -88,16 +86,15 @@ def createnewjob():
         for a in range(len(metrics)-1):
             metrics_input += metrics[a] + ","
         metrics_input += metrics[-1] + "."
-        conn1 = pyodbc.connect(r'Driver={ODBC Driver 18 for SQL Server};Server=tcp:neural-hire-dev-1.database.windows.net,1433;Database=neural-hire-db;Uid=vmadmin;Pwd=Virginia@Tech;Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;')
-        cursor1 = conn1.cursor()
-        cursor1.execute("""
+        
+        mycurr.execute("""
         INSERT INTO [dbo].[jobs](jobname, datecreated, status, username) VALUES(?,?,?,?)
         """,(jobname,datetime.now().date(),False,session['username']))
-        conn1.commit()
-        cursor1.execute("SELECT @@IDENTITY AS last_id")
-        jobid = cursor1.fetchone().last_id
+        mycurr.commit()
+        mycurr.execute("SELECT @@IDENTITY AS last_id")
+        jobid = mycurr.fetchone().last_id
         print(jobid)
-        conn1.close()
+        myconn.commit()
         threading.Thread(target=subprocess.Popen, args=(['python', 'resume_analyser.py', filepath, jobdescription, metrics_input,str(jobid)],)).start()
         return redirect('/')
     return render_template('createnewjob.html')

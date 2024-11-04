@@ -26,9 +26,10 @@ job_Id = sys.argv[4]
 
 print(filepath, job_description, job_metrics, job_Id)
 
+connection_string = f'Driver={"ODBC Driver 18 for SQL Server"};Server=tcp:neural-hire-dev-1.database.windows.net,1433;Database=neural-hire-db;Uid=vmadmin;Pwd={SQL_CLOUD_PWD};Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;'
+
 # establish db connection
-myconn = pyodbc.connect(
-    r'Driver={ODBC Driver 18 for SQL Server};Server=tcp:neural-hire-dev-1.database.windows.net,1433;Database=neural-hire-db;Uid=vmadmin;Pwd=Virginia@Tech;Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;')
+myconn = pyodbc.connect(connection_string)
 mycurr = myconn.cursor()
 
 # get all judging filters as input from recruiter
