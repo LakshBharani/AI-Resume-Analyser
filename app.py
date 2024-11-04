@@ -1,3 +1,4 @@
+from dotenv import load_dotenv
 from flask import Flask,request,redirect,url_for,render_template,session
 import os
 import pyodbc
@@ -5,10 +6,18 @@ import subprocess
 import threading
 from datetime import datetime
 import pandas as pd
+from pathlib import Path
+
+dotenv_path = Path('./.env')
+load_dotenv(dotenv_path=dotenv_path)
+SQL_CLOUD_PWD = os.getenv('SQL_CLOUD_PWD')
+
+myconn = pyodbc.connect(
+    r'Driver={ODBC Driver 18 for SQL Server};Server=tcp:neural-hire-dev-1.database.windows.net,1433;Database=neural-hire-db;Uid=vmadmin;Pwd=Virginia@Tech;Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;')
+mycurr = myconn.cursor()
 
 app = Flask(__name__)
-app.secret_key = "329rjfnfrg94rjvnffvie498r"
-
+app.secret_key = os.getenv("APP_SECRET_KEY")
 
 UPLOAD_FOLDER = 'uploads/'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -20,7 +29,7 @@ completed_and_downloadable_jobids = []
 @app.route('/login',methods=['GET','POST'])
 def login():
     if 'username' not in session:
-        conn1 = pyodbc.connect(r'Driver={ODBC Driver 17 for SQL Server};Server=tcp:neural-hire-dev-1.database.windows.net,1433;Database=neural-hire-db;Uid=vmadmin;Pwd=Virginia@Tech;Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;')
+        conn1 = pyodbc.connect(r'Driver={ODBC Driver 18 for SQL Server};Server=tcp:neural-hire-dev-1.database.windows.net,1433;Database=neural-hire-db;Uid=vmadmin;Pwd=Virginia@Tech;Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;')
         cursor1 = conn1.cursor()
         cursor1.execute("""
         SELECT * FROM [dbo].[iam]
@@ -46,7 +55,7 @@ def login():
 
 @app.route('/',methods=['GET','POST'])
 def home():
-    conn = pyodbc.connect(r'Driver={ODBC Driver 17 for SQL Server};Server=tcp:neural-hire-dev-1.database.windows.net,1433;Database=neural-hire-db;Uid=vmadmin;Pwd=Virginia@Tech;Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;')
+    conn = pyodbc.connect(r'Driver={ODBC Driver 18 for SQL Server};Server=tcp:neural-hire-dev-1.database.windows.net,1433;Database=neural-hire-db;Uid=vmadmin;Pwd=Virginia@Tech;Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;')
     cursor = conn.cursor()
     cursor.execute("""
     SELECT * FROM [dbo].[jobs]
@@ -79,7 +88,7 @@ def createnewjob():
         for a in range(len(metrics)-1):
             metrics_input += metrics[a] + ","
         metrics_input += metrics[-1] + "."
-        conn1 = pyodbc.connect(r'Driver={ODBC Driver 17 for SQL Server};Server=tcp:neural-hire-dev-1.database.windows.net,1433;Database=neural-hire-db;Uid=vmadmin;Pwd=Virginia@Tech;Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;')
+        conn1 = pyodbc.connect(r'Driver={ODBC Driver 18 for SQL Server};Server=tcp:neural-hire-dev-1.database.windows.net,1433;Database=neural-hire-db;Uid=vmadmin;Pwd=Virginia@Tech;Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;')
         cursor1 = conn1.cursor()
         cursor1.execute("""
         INSERT INTO [dbo].[jobs](jobname, datecreated, status, username) VALUES(?,?,?,?)
@@ -89,7 +98,7 @@ def createnewjob():
         jobid = cursor1.fetchone().last_id
         print(jobid)
         conn1.close()
-        threading.Thread(target=subprocess.Popen, args=(['python', 'ai_runner.py', filepath, jobdescription, metrics_input,str(jobid)],)).start()
+        threading.Thread(target=subprocess.Popen, args=(['python', 'resume_analyser.py', filepath, jobdescription, metrics_input,str(jobid)],)).start()
         return redirect('/')
     return render_template('createnewjob.html')
 
@@ -128,16 +137,18 @@ def viewjob():
     if request.method=='GET':
         csv_file_name = str(input_view_job_id)+".csv"
         df = pd.read_csv(csv_file_name)
-        labels = df.columns[1:].tolist()  # Assuming the first column is a category, and others are metrics
+        labels = df.columns[1:].tolist() # Assuming the first column is a category, and others are metrics
+        mycurr.execute("select jobname from [dbo].[jobs] where jobid = 1;")
+        job_name = mycurr.fetchone()[0]
         datasets = [
             {
                 "label": row[0],
-                "data": row[1:].tolist()
+                "data": row[1:].tolist(),
             }
             for row in df.values
         ]
-        return render_template('viewjob.html',labels=labels,datasets=datasets)
+        return render_template('viewjob.html', labels=labels, datasets=datasets, job_name=job_name)
     return redirect('/')
     
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False)
