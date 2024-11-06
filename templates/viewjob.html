@@ -35,39 +35,58 @@
                 <div class="container-fluid">
                     <h1> {{ job_name }}</h1>
                 </div>
-                <div class="container">
+                <div class="container" style="text-align: left; width: 800px; height: 800px;">
                     <canvas id="myRadarChart">
                         {% block JavaScript %}
                         <script>
                             let chartLabels = JSON.parse('{{ labels|tojson|safe }}');
                             let chartDatasets = JSON.parse('{{ datasets|tojson|safe }}');
+                        
+                            function getRandomColor() {
+                                const r = Math.floor(Math.random() * 256);
+                                const g = Math.floor(Math.random() * 256);
+                                const b = Math.floor(Math.random() * 256);
+                                return {
+                                    background: `rgba(${r}, ${g}, ${b}, 0.2)`,
+                                    border: `rgba(${r}, ${g}, ${b}, 1)`,
+                                    point: `rgba(${r}, ${g}, ${b}, 1)`
+                                };
+                            }
+                        
                             const ctx = document.getElementById('myRadarChart').getContext('2d');
                             new Chart(ctx, {
                                 type: 'radar',
                                 data: {
                                     labels: chartLabels,
-                                    datasets: chartDatasets.map(dataset => ({
-                                        label: dataset.label,
-                                        data: dataset.data,
-                                        fill: true,
-                                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                                        borderColor: 'rgb(75, 192, 192)',
-                                        pointBackgroundColor: 'rgb(75, 192, 192)'
-                                    }))
+                                    datasets: chartDatasets.map(dataset => {
+                                        const color = getRandomColor();
+                                        return {
+                                            label: dataset.label,
+                                            data: dataset.data,
+                                            fill: true,
+                                            backgroundColor: color.background,
+                                            borderColor: color.border,
+                                            pointBackgroundColor: color.point
+                                        };
+                                    })
                                 },
                                 options: {
                                     scales: {
                                         r: {
-                                            beginAtZero: true
+                                            beginAtZero: true,
+                                            min: 0, // Set your minimum value here
+                                            max: 100 // Set your maximum value here based on your data range
                                         }
-                                    }
+                                    },
+                                    responsive: true,
+                                    maintainAspectRatio: false
                                 }
                             });
-                        </script>
+                        </script>                        
                         {% endblock %}
                     </canvas>
                 </div>
-                <div class="container">
+                <div class="container" style="max-height: 300px; overflow-y: auto;">
                     <table class="table">
                         <thead>
                             <tr>
