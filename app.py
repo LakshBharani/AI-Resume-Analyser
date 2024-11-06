@@ -25,7 +25,6 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
-completed_and_downloadable_jobids = []
 
 @app.route('/login',methods=['GET','POST'])
 def login():
@@ -59,6 +58,7 @@ def home():
     SELECT * FROM [dbo].[jobs]
     """)
     rows = mycurr.fetchall()
+    session['completed_and_downloadable_jobids'] = []
     if 'username' not in session:
         return redirect('/login')
     tablerows = []
@@ -66,7 +66,7 @@ def home():
         if row[4]==session['username']:
             tablerows.append([row[1],row[3],row[0]])
             if row[3]==True:
-                completed_and_downloadable_jobids.append(row[0])
+                session['completed_and_downloadable_jobids'].append(row[0])
     myconn.commit()
     return render_template('home.html',data = tablerows)
 
@@ -116,8 +116,9 @@ def redirecthandle():
         emptyvar = 0
     try:
         
-        if int(request.form['View']) in completed_and_downloadable_jobids:
+        if int(request.form['View']) in session['completed_and_downloadable_jobids']:
             return redirect(url_for('viewjob',inputviewjobid=str(request.form['View'])))
+        return redirect('/')
     except Exception as e2:
         emptyvar = 0
     try:
@@ -130,8 +131,10 @@ def redirecthandle():
 
 @app.route('/viewjob',methods=['GET','POST'])
 def viewjob():
+    if 'username' not in session:
+        return redirect('/login')
     input_view_job_id = request.args.get('inputviewjobid')
-    if request.method=='GET':
+    if (request.method=='GET') and (int(input_view_job_id) in session['completed_and_downloadable_jobids']):
         csv_file_name = str(input_view_job_id)+".csv"
         df = pd.read_csv(csv_file_name, encoding='utf-8', encoding_errors='ignore')
         labels = df.columns[1:].tolist() # Assuming the first column is a category, and others are metrics
